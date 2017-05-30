@@ -1,13 +1,13 @@
 # React 编程思想
 
-*我们总是寻找最佳实战，不断的解决学习React的各种疑惑 。*
+*我们总是寻找最佳实战,不断的解决学习React的各种疑惑 。*
 
 ## Dva的React/JSX 编码规范
 
 ### 内容目录
 
 * [JavaScript 语言](#javascript-语言)
-	1. [复杂的表达式](#复杂的表达式)
+  1. [复杂的表达式](#复杂的表达式)
 	1. [否定条件表达式](#否定条件表达式)
 	1. [const 和 let](#const-和-let)
 	1. [模板字符串](#模板字符串)
@@ -31,18 +31,19 @@
   1. [propTypes](#proptypes)
   1. [往下传数据](#往下传数据)
   1. [往上传数据](#往上传数据)
+	1. [表单元素](#表单元素)
   1. [理解 CSS Modules](#理解-css-modules)
   1. [定义全局 CSS](#定义全局-css)
   1. [classnames Package](#classnames-package)
   1. [path-to-regexp Package](#path-to-regexp-package)
 * [Router](#router)
-  * [Config with JSX Element (router.js)](#config-with-jsx-element-routerjs)
-  * [Route Components](#route-components)
-  * [通过 connect 绑定数据](#通过-connect-绑定数据)
-  * [Injected Props (e.g. location)](#injected-props-eg-location)
-  * [基于 action 进行页面跳转](#基于-action-进行页面跳转)
+  1. [Config with JSX Element (router.js)](#config-with-jsx-element-routerjs)
+  1. [Route Components](#route-components)
+  1. [通过 connect 绑定数据](#通过-connect-绑定数据)
+  1. [Injected Props (e.g. location)](#injected-props-eg-location)
+  1. [基于 action 进行页面跳转](#基于-action-进行页面跳转)
 * [工具](#工具)
-  * [通过 bees-cli 创建项目](#通过-bees-cli-创建项目)
+  1. [通过 bees-cli 创建项目](#通过-bees-cli-创建项目)
 
 ### JavaScript 语言
 
@@ -586,9 +587,10 @@ App.propTypes = {
 
 ![](https://zos.alipayobjects.com/rmsportal/fiKKgDGuEJfSvxv.png)
 
-#### HTML’s inputs
+#### 表单元素
 输入应该通过onChange方法返回一个值，而不是一个JavaScript事件实例。
 你可以进一步确保在onChange返回的数据类型和传递的数据类型相匹配。
+
 ![](asstes/2827488648-58e867264ed12_articlex.png)
 
 ```javascript
