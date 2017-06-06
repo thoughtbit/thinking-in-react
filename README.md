@@ -13,6 +13,8 @@
 	1. [模板字符串](#模板字符串)
   1. [默认参数](#默认参数)
   1. [箭头函数](#箭头函数)
+  1. [迭代遍历](#迭代遍历)
+  1. [构造器](#构造器)
   1. [模块的 Import 和 Export](#模块的-import-和-export)
   1. [析构赋值](#析构赋值)
   1. [对象字面量扩展语法](#对象字面量扩展语法)
@@ -130,6 +132,10 @@ logActivity();  // skiing
 
 #### 箭头函数
 
+*   当函数特别简单，并且只有一个参数，可省略花括号、圆括号、return
+*   提高链式调用可读性，不断传递this
+*   但是结果需要回传一个对象时，不能省略return
+
 函数的快捷写法，不需要通过 `function` 关键字创建函数，并且还可以省略 `return` 关键字。
 
 同时，箭头函数还会继承当前上下文的 `this` 关键字。
@@ -146,6 +152,40 @@ logActivity();  // skiing
 [1, 2, 3].map((function(x) {
   return x + 1;
 }).bind(this));
+```
+
+#### 迭代遍历
+
+*   ES6提供的遍历器Iterator，适合于部署了Symbol.iterator属性的数据结构，可以用for...of遍历成员
+*   for...in遍历object所有可枚举对象，包含当前对象和原型上
+*   for...of遍历collection对象，并不适用所有object，视乎其是否有[Symbol.iterator]属性。且只遍历当前对象
+*   Airbnb推荐使用高阶函数例如 map() 和 reduce() 替代 for-of，便于处理函数回调
+
+
+#### 构造器
+
+* 用class替代prototype
+
+```javascript
+//用class更为简洁
+class Foo {
+   constructor(){}
+   getVal(){}  
+}
+//等价于
+Foo.prototype = {
+   getVal(){}
+}
+```
+
+* 用extends实现继承，不直接操作prototype
+* class能实现模块开发，并且能通过返回this实现链式调用
+* 类的数据类型就是函数，类本身就指向构造函数
+
+```javascript
+class Foo {}
+typeof Foo;  // Function
+Foo === Foo.prototype.constructor; //true
 ```
 
 #### 模块的 Import 和 Export
@@ -174,6 +214,9 @@ export class App extend Component {};
 
 #### 析构赋值
 
+* 推荐使用解构赋值，减少临时变量的引入
+* 需要回传多个值时，使用对象解构，而不是数组解构，方便调用时可以忽略顺序
+
 析构赋值让我们从 Object 或 Array 里取部分数据存为变量。
 
 ```javascript
@@ -186,6 +229,14 @@ console.log(`${name} : ${age}`);  // guanguan : 2
 const arr = [1, 2];
 const [foo, bar] = arr;
 console.log(foo);  // 1
+```
+
+* 对象的解构赋值的内部机制，是先找到同名属性，然后再赋给对应的变量。真正被赋值的是后者，而不是前者。
+
+``` javascript
+let { foo: baz } = { foo: "aaa", bar: "bbb" };
+baz; // "aaa"
+foo; // error: foo is not defined
 ```
 
 我们也可以析构传入的函数参数。
@@ -231,6 +282,16 @@ const obj = {
   bar // 等同于 foo: () => {}
 }
 ```
+
+如果对象具有动态属性名，在一开始使用可计算的属性名称，保证所有属性定义在一起
+```javascript
+const obj = {
+  id: 5,
+  name: 'San Francisco',
+  [getKey('enabled')]: true,
+}
+```
+
 
 #### Spread Operator
 
@@ -318,7 +379,7 @@ delay(1000).then(_ => {
 });
 ```
 完整的 Promise 使用
-```
+```javascript
 import axios from 'axios';
 export default function (url, json, method = 'post', timeout = 25000) {
   const promise = new Promise((resolve, reject) => {
@@ -357,7 +418,7 @@ export default function (url, json, method = 'post', timeout = 25000) {
 ```
 
 Promise.all() 方法用于将多个Promise实例，包装成一个新的Promise实例。
-```
+```javascript
 // 生成一个Promise对象的数组
 var promises = [2, 3, 5, 7, 11, 13].map(function (id) {
   return getJSON("/post/" + id + ".json");
@@ -1313,6 +1374,545 @@ const Greeting = (props, context) => (
 
 Greeting.contextTypes = { salutation: string };
 ```
+
+## 一、Eslint检测ES6规范配置
+
+### 1. 编码格式规范
+
+a. 规定箭头函数强制大括号
+
+b. 规定箭头函数参数是否要使用括号
+
+c. 规定箭头函数的箭头前后的空格规范
+
+d. generator 函数中 _号周围的空格
+
+e. 规定rest参数和扩展运算符与他们的参数之间的空格
+
+f. 禁止模板字面量中的花括号出现括号
+
+g. 强制在 yield_ 表达式中 * 后面使用空格
+
+* * *
+
+a.规定箭头函数强制大括号
+
+```javascript
+//Eslint文件配置项
+'arrow-body-style': ['error', 'as-needed', {
+    requireReturnForObjectLiteral: false,
+}]
+```
+
+| 参数 | 参数说明 | 备注 |
+| --- | --- | --- |
+| as-needed | 当大括号是可省略的，强制不使用 |
+| requireReturnForObjectLiteral | 不需要显式返回对象字面量 | 必须与as-needed 搭配使用 |
+
+```javascript
+//项目中正确使用事例
+//可以省略大括号
+let foo = () => 0; 
+//不用显式返回对象字面量
+let foo = () => ({ bar: 0 });
+
+//错误对比：
+let foo = () => {
+    return ({bar: 0 });
+};
+```
+
+b.规定箭头函数参数是否要使用括号
+
+```javascript
+//Eslint文件配置项
+'arrow-parens': ['error', 'as-needed', {
+    requireForBlockBody: true,
+}]
+```
+
+| 参数 | 参数说明 | 备注 |
+| --- | --- | --- |
+| as-needed | 当只有一个参数时允许省略圆括号 |
+| requireForBlockBody | 当函数体在一个指令块中，参数必须用圆括号包含 | 作为as-needed补充。以函数体是否被 { } 包括快速判断 |
+
+```javascript
+//项目实践正确例子
+// 只有一个参数允许省略
+a.map(x => {
+  return x * x;
+});
+// requireForBlockBody 参数作为补充，上述代码修改成
+a.map((x) => {
+  return x * x;
+});
+```
+
+c.箭头函数的箭头前后的空格规范
+
+```javascript
+'arrow-spacing': ['error', { 
+    before: true, 
+    after: true 
+}]
+```
+
+| 参数 | 参数说明 | 备注 |
+| --- | --- | --- |
+| before | 箭头前面有空格 |  |
+| after | 箭头后面有空格 |  |
+
+```javascript
+//项目应用
+a => a;
+```
+
+d.generator 函数中 * 号周围的空格
+
+```javascript
+'generator-star-spacing': ['error', { 
+    before: false, 
+    after: true 
+}]
+```
+
+| 参数 | 参数说明 | 备注 |
+| --- | --- | --- |
+| before | *前面没有空格 |
+| after | *后面有空格 |
+
+```javascript
+//项目正确使用示例
+function* generator() {}
+```
+
+e.不允许rest参数和扩展运算符与他们的参数之间有空格
+
+```javascript
+'rest-spread-spacing': ['error', 'never']
+```
+
+| 参数 | 参数说明 | 备注 |
+| --- | --- | --- |
+| never | 符号和参数之间不能有空格 |
+
+```javascript
+//rest参数
+let [a, b, ...arr] = [1, 2, 3, 4, 5]
+//扩展运算符
+function fn(){}
+fn(...args)
+```
+
+f.禁止模板字面量中的花括号出现括号
+
+```javascript
+'template-curly-spacing': 'error'
+```
+
+```javascript
+//花括号里面没有括号
+`hello, ${people.name}!`
+```
+
+g.强制在 yield _表达式中_ 后面使用空格
+
+```javascript
+'yield-star-spacing': ['error', 'after']
+```
+
+```javascript
+function* generator() {
+  yield* other();
+}
+```
+
+* * *
+
+### 2. 声明唯一性
+
+a.不能修改类声明的变量
+b.禁止修改const声明的变量
+c.不允许类成员里有重复的名称
+d.不要重复引入一个模块
+e.禁止在import，export，解构赋值中重命名和原有名字相同
+
+* * *
+
+a.不能修改类声明的变量
+
+```javascript
+'no-class-assign': 'error'
+```
+
+```javascript
+// 简而言之，如果以class Name{}形object-shorthand式出现，那么Name不能做任何更改和赋值
+// 下面例子是正确的。因为A至始至终只是变量
+let A = class {
+    b() {
+        A = 0; 
+        console.log(A);
+    }
+}
+console.log(A); //class
+let Foo = new A(); 
+Foo.b(); //0
+console.log(A); //0
+```
+
+b.禁止修改const声明的变量
+
+```javascript
+'no-const-assign': 'error'
+```
+
+c.不允许类成员里有重复的名称
+
+```javascript
+'no-dupe-class-members': 'error'
+```
+
+d.不要重复引入一个模块
+
+```javascript
+'no-duplicate-imports': 'off'
+```
+
+```javascript
+//同一个模块引入两个变量应该写在一个大括号里面
+import { merge, find } from 'module';
+```
+
+e.禁止在import，export，解构赋值中重命名和原有名字相同
+
+```javascript
+'no-useless-rename': ['error', {
+  ignoreDestructuring: false,
+  ignoreImport: false,
+  ignoreExport: false,
+}]
+```
+
+```javascript
+//形如{ foo as foo }和{ bar: bar }并没有起到重命名的作用，所以应该禁止这种冗余书写
+import { foo as bar } from "baz";
+export { foo as bar } from "foo";
+let { [foo]: foo } = bar;
+```
+
+### 3. 初始化定义规范
+
+a.Symbol类型不能用new关键字
+
+b.Symbol定义的时候增加描述语言，便于debug
+
+c.generator函数里面一定要有yield
+
+d.使用 let 或 const 而不是 var
+
+e.禁止在字面量声明无用的计算属性
+
+f.若变量不会再次赋值，使用const声明
+
+* * *
+
+a.Symbol类型不能用new关键字
+
+```javascript
+'no-new-symbol': 'error'
+```
+
+```javascript
+//symbol应该以函数形式调用
+var foo = Symbol('foo');
+```
+
+b.Symbol定义的时候增加描述语言，便于debug
+
+```javascript
+'symbol-description': 'error'
+```
+
+```javascript
+let foo = Symbol("some description")
+```
+
+c.generator函数里面一定要有yield
+
+```javascript
+'require-yield': 'error'
+```
+
+d.使用 let 或 const 而不是 var
+
+```javascript
+'no-var': 'error'
+```
+
+e.禁止在字面量声明无用的计算属性
+
+```javascript
+'no-useless-computed-key': 'error'
+```
+
+```javascript
+//无用的["a"]计算属性
+var foo = {['0+1,234']: "b"};
+
+//改写成
+var foo = { '0+1,234': 0 };
+```
+
+f.若变量不会再次赋值，使用const声明
+
+```javascript
+'prefer-const': ['error', {
+  destructuring: 'any',
+  ignoreReadBeforeAssign: true,
+}]
+```
+
+| 参数 | 参数说明 | 备注 |
+| --- | --- | --- |
+| destructuring | 解构赋值时，所有变量的类型都应该保持一致 |
+| ignoreReadBeforeAssign | 忽略声明和第一次赋值之间的变量 | 也就是不能先定义后赋值 |
+
+```javascript
+//解构赋值时，值要么都是const要么都是let
+// a0是确定的，b没有被赋值
+const {a: a0, b} = obj;
+const a = a0 + 1;
+
+// a,b都是变量,所以解构赋值定义用let
+let {a, b} = obj;
+a = a + 1;
+b = b + 1;
+
+//错误例子，在ignoreReadBeforeAssign=true时，timer的声明和赋值之间的initialize()函数声明会被省略。
+//从而会在setInterval处报错函数undefined
+let timer;
+function initialize() {
+    if (foo()) {
+        clearInterval(timer);
+    }
+}
+timer = setInterval(initialize, 100);
+
+//正确例子，只要声明就要赋值！
+const timer = setInterval(initialize, 100);
+function initialize() {
+    if (foo()) {
+        clearInterval(timer);
+    }
+}
+```
+
+* * *
+
+### 4.代码编写注意事项
+
+a. 避免箭头函数和比较式混淆
+
+b. 使用模板字面量而不是字符串拼接
+
+c. 使用扩展运算符(...)而非.apply()调用可变参数
+
+d. 用rest参数(...变量名)替换arguments
+
+e. 不允许使用parseInt()转化2，8，16进制
+
+f. 要求使用箭头函数进行回调
+
+g. 对象字面量语法简写
+
+* * *
+
+a.避免箭头函数和比较式混淆
+
+```javascript
+'no-confusing-arrow': ['error', {
+    allowParens: true,
+}]
+```
+
+| 参数 | 参数说明 | 备注 |
+| --- | --- | --- |
+| allowParens | 放宽标准，允许箭头函数使用括号 | 不强制必须用return返回 |
+
+```javascript
+//如果是严格模式，会发现即使用圆括号包含，也要用return区分箭头函数和三元运算比较
+var x = a => { return 1 ? 2 : 3; };
+var x = (a) => { return 1 ? 2 : 3; };
+
+//如果allowParens=true，则放宽标准
+var x = a => (1 ? 2 : 3);
+var x = (a) => (1 ? 2 : 3);
+```
+
+b.使用模板字面量而不是字符串拼接
+
+```javascript
+'prefer-template': 'error'
+```
+
+```javascript
+let str = `Hello, ${name}!`
+```
+
+c.使用扩展运算符(...)而非.apply()调用可变参数
+
+```javascript
+'prefer-spread': 'error'
+```
+
+```javascript
+//求出一个数组最大元素
+Math.max.apply(null, [14, 3, 77])
+//等效于
+Math.max(...[14, 3, 77])
+//等同
+Math.max(14, 3, 77)
+```
+
+d.用rest参数(...变量名)替换arguments
+
+```javascript
+'prefer-rest-params': 'error'
+```
+
+```javascript
+//rest运算符可以提供一个真正的数组,能显式表示参数
+//而arguments是一个对象，操作中要通过call等手段调用数组方法
+function foo(...args) {
+    console.log(args);
+}
+```
+
+e. 不允许使用parseInt()转化2，8，16进制
+
+```javascript
+'prefer-numeric-literals': 'error'
+```
+
+```javascript
+//只针对2，8，16进制使用
+//数字转化成其他进制或者是变量转化还是用parseInt
+0b111110111 === 503;
+0o767 === 503;
+0x1F7 === 503;
+
+parseInt(1, 3);
+parseInt(foo, 2);
+```
+
+f. 要求使用箭头函数进行回调
+
+```javascript
+'prefer-arrow-callback': ['error', {
+  allowNamedFunctions: false,
+  allowUnboundThis: true,
+}]
+```
+
+| 参数 | 参数说明 | 备注 |
+| --- | --- | --- |
+| allowNamedFunctions | 如果回调函数里面是命名函数则报错 |
+| allowUnboundThis | 不使用bind()指定this，规则会动态标记this的使用 |
+
+```javascript
+//直接使用this，而不是bind(this)
+//回调函数里是匿名函数
+foo(function() { return this.a; });
+```
+
+g.对象字面量语法简写
+
+```javascript
+'object-shorthand': ['error', 'always', {
+  ignoreConstructors: false,
+  avoidQuotes: true,
+}]
+```
+
+| 参数 | 参数说明 | 备注 |
+| --- | --- | --- |
+| always | 能简写就简写 |
+| ignoreConstructors | 构造函数不能省略 | 必须指定第一个参数 |
+| avoidQuotes | 对象键是字符串时，用长格式 | 必须指定第一个参数 |
+
+```javascript
+// 因为foo对象两个键都是string，所以后面不能省略
+var foo = {
+    "bar-baz": function() {},
+    "qux": qux
+}
+```
+
+* * *
+
+### 5.派生类相关
+
+a. 构造函数必须调用 super
+
+b. 禁止不必要的构造函数
+
+c. 派生类函数构造器禁止在super()之前使用this
+
+* * *
+
+a. 构造函数必须调用 super
+
+``` javascript
+'constructor-super': 'error'
+```
+
+```javascript
+//派生类中构造函数必须调用,非派生类的构造函数不能调用super()
+class A {
+    constructor() { }
+}
+
+class A extends B {
+    constructor() {
+        super();
+    }
+}
+```
+
+b. 禁止不必要的构造函数
+
+```javascript
+'no-useless-constructor': 'error'
+```
+
+```javascript
+//简单讲便是构造器里面一定要有执行的逻辑代码
+class A {
+    constructor () {
+        doSomething();
+    }
+}
+//如果没有特别的逻辑，则类返回空即可
+class A { }
+```
+
+c. 派生类函数构造器禁止在super()之前使用this
+
+```javascript
+'no-this-before-super': 'error
+```
+
+```javascript
+//否则会返回引用错误(reference error)
+class A extends B {
+    constructor() {
+        super();
+        this.a = 0; // OK, this is after `super()`.
+    }
+}
+```
+
+* * *
 
 ## Airbnb React/JSX 编码规范
 
